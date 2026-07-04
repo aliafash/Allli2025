@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useSession } from "@/contexts/SessionContext";
 import { markNotificationRead } from "@/lib/services";
-import { Bell, CalendarCheck, MessageCircle, Megaphone } from "lucide-react";
+import { getNotificationPermission, requestNotificationPermission } from "@/lib/push";
+import { Bell, CalendarCheck, MessageCircle, Megaphone, BellRing } from "lucide-react";
 
 const ICONS: Record<string, typeof Bell> = {
   booking: CalendarCheck,
@@ -14,6 +15,7 @@ const ICONS: Record<string, typeof Bell> = {
 export default function Notifications() {
   const { deviceId, readNotifications } = useSession();
   const notifications = useNotifications();
+  const [permission, setPermission] = useState(getNotificationPermission());
 
   useEffect(() => {
     notifications.forEach((n) => {
@@ -23,9 +25,24 @@ export default function Notifications() {
     });
   }, [notifications, deviceId, readNotifications]);
 
+  const handleEnable = async () => {
+    const granted = await requestNotificationPermission();
+    setPermission(granted ? "granted" : "denied");
+  };
+
   return (
     <Layout title="الإشعارات" back>
       <div className="p-4 space-y-3">
+        {permission !== "unsupported" && permission !== "granted" && (
+          <button
+            onClick={handleEnable}
+            className="w-full border border-primary/30 bg-primary/5 text-primary rounded-xl p-3 flex items-center gap-2 text-sm font-bold"
+            data-testid="button-enable-push"
+          >
+            <BellRing size={18} />
+            فعّل إشعارات الجهاز لتصلك تحديثات الحجز والمحادثات فوراً
+          </button>
+        )}
         {notifications.map((n) => {
           const Icon = ICONS[n.type] ?? Bell;
           return (

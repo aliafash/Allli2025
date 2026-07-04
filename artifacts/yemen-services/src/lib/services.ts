@@ -106,8 +106,42 @@ export async function createBooking(data: {
   return r.key;
 }
 
+const STATUS_NOTIFICATION_TEXT: Record<BookingStatus, { title: string; body: (techName: string) => string }> = {
+  pending: {
+    title: "حجزك قيد الانتظار",
+    body: (t) => `طلب حجزك مع ${t} بانتظار المراجعة.`,
+  },
+  accepted: {
+    title: "تم قبول حجزك",
+    body: (t) => `وافق ${t} على طلب حجزك، سيتم التواصل معك قريباً.`,
+  },
+  in_progress: {
+    title: "الحجز قيد التنفيذ",
+    body: (t) => `${t} بدأ بتنفيذ الخدمة المطلوبة.`,
+  },
+  completed: {
+    title: "تم إكمال الخدمة",
+    body: (t) => `أكمل ${t} تنفيذ الخدمة. يمكنك الآن تقييمه.`,
+  },
+  cancelled: {
+    title: "تم إلغاء الحجز",
+    body: (t) => `تم إلغاء حجزك مع ${t}.`,
+  },
+};
+
 export async function updateBookingStatus(id: string, status: BookingStatus) {
+  const snap = await get(ref(rtdb, `bookings/${id}`));
+  const booking = snap.val();
   await update(ref(rtdb, `bookings/${id}`), { status });
+  if (booking) {
+    const text = STATUS_NOTIFICATION_TEXT[status];
+    await createNotification({
+      title: text.title,
+      body: text.body(booking.technicianName ?? "الفني"),
+      type: "booking",
+      target: booking.deviceId,
+    });
+  }
 }
 
 export async function deleteBooking(id: string) {
@@ -152,6 +186,19 @@ export async function ensureChat(chatId: string, technicianId: string, technicia
 export async function sendMessage(chatId: string, sender: "user" | "technician", text: string) {
   const r = push(ref(rtdb, `chats/${chatId}/messages`));
   await set(r, { sender, text, ts: Date.now() });
+
+  if (sender === "technician") {
+    const chatSnap = await get(ref(rtdb, `chats/${chatId}`));
+    const chat = chatSnap.val();
+    if (chat) {
+      await createNotification({
+        title: `رسالة جديدة من ${chat.technicianName}`,
+        body: text,
+        type: "chat",
+        target: chat.deviceId,
+      });
+    }
+  }
 }
 
 export async function setChatBlocked(chatId: string, blocked: boolean) {

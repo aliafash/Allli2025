@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getDeviceId } from "@/lib/deviceId";
 import { ensureUser, watchUser, setUserPhone as setUserPhoneFb, toggleFavorite as toggleFavoriteFb } from "@/lib/services";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { UserRecord } from "@/lib/types";
 
 interface SessionContextValue {
@@ -24,6 +25,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const unsub = watchUser(deviceId, setRecord);
     return () => unsub();
   }, [deviceId]);
+
+  usePushNotifications(deviceId);
 
   const value: SessionContextValue = {
     deviceId,

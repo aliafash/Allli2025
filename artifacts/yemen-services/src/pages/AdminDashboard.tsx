@@ -28,6 +28,7 @@ import {
   updateBookingStatus,
   deleteBooking,
   setChatBlocked,
+  sendMessage,
   createNotification,
   addCity,
   deleteCity,
@@ -355,24 +356,70 @@ function BookingsTab({ bookings }: { bookings: Booking[] }) {
 }
 
 function ChatsTab({ chats }: { chats: Chat[] }) {
+  const [openReplyId, setOpenReplyId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleReply = async (chatId: string) => {
+    if (!replyText.trim()) return;
+    setSending(true);
+    try {
+      await sendMessage(chatId, "technician", replyText.trim());
+      setReplyText("");
+      setOpenReplyId(null);
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="space-y-2">
       {chats.map((c) => (
-        <div key={c.id} className="border rounded-xl p-3 bg-card flex items-center justify-between">
-          <div>
-            <p className="font-bold text-sm">{c.technicianName}</p>
-            <p className="text-xs text-muted-foreground">جهاز: {c.deviceId.slice(0, 12)}...</p>
+        <div key={c.id} className="border rounded-xl p-3 bg-card space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-sm">{c.technicianName}</p>
+              <p className="text-xs text-muted-foreground">جهاز: {c.deviceId.slice(0, 12)}...</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setOpenReplyId(openReplyId === c.id ? null : c.id)}
+                className="px-3 py-1.5 rounded-lg text-xs bg-primary/10 text-primary"
+                data-testid={`button-reply-chat-${c.id}`}
+              >
+                رد كفني
+              </button>
+              <button
+                onClick={() => setChatBlocked(c.id, !c.blocked)}
+                className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${
+                  c.blocked ? "bg-green-100 text-green-700" : "bg-destructive/10 text-destructive"
+                }`}
+                data-testid={`button-block-chat-${c.id}`}
+              >
+                <Ban size={13} />
+                {c.blocked ? "إعادة تفعيل" : "إيقاف"}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => setChatBlocked(c.id, !c.blocked)}
-            className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${
-              c.blocked ? "bg-green-100 text-green-700" : "bg-destructive/10 text-destructive"
-            }`}
-            data-testid={`button-block-chat-${c.id}`}
-          >
-            <Ban size={13} />
-            {c.blocked ? "إعادة تفعيل" : "إيقاف"}
-          </button>
+          {openReplyId === c.id && (
+            <div className="flex items-center gap-2">
+              <input
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="اكتب رداً كفني..."
+                className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                data-testid={`input-reply-chat-${c.id}`}
+              />
+              <button
+                onClick={() => handleReply(c.id)}
+                disabled={sending}
+                className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-bold"
+                data-testid={`button-send-reply-${c.id}`}
+              >
+                إرسال
+              </button>
+            </div>
+          )}
         </div>
       ))}
       {chats.length === 0 && <p className="text-center text-muted-foreground py-10 text-sm">لا توجد محادثات</p>}

@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "b2DQTF0RaPz7sS6h70PY1"
+uri = "file://yemen-services-build.zip"
+type = "unspecified"
+title = "Yemen Services - Production Build"
