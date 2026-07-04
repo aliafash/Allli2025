@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "كل خدمات اليمن"
+version = "1.0.0"
+id = "artifacts/yemen-services"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18232
+
+[services.development]
+run = "pnpm --filter @workspace/yemen-services run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/yemen-services", "run", "build" ]
+publicDir = "artifacts/yemen-services/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18232"
+BASE_PATH = "/"
